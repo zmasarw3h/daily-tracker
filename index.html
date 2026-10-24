@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Qada Tracker</title>
+<meta name="description" content="A private tracker for making up missed prayers. Your data stays on your phone.">
+<meta name="theme-color" content="#F3F4FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1020" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Qada">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap">
+<style>
+/* Concept: the debt as one sky. A single band splits into the five prayers, each in the color of its hour
+   (pre-dawn violet, noon gold, afternoon amber, dusk rose, night blue) and fills in as prayers are made up.
+   Everything else stays quiet: no cards, one reminder at the top, settings and backup tucked into a sheet. */
+:root {
+  color-scheme: light;
+  --bg: #F3F4FA;
+  --glow: #E2E6FA;
+  --surface: #FFFFFF;
+  --fg: #121A33;
+  --muted: #586181;
+  --line: #DCE0EE;
+  --line-strong: #BFC6DC;
+  --fajr: #7658D0;
+  --dhuhr: #C79A0A;
+  --asr: #D8742A;
+  --maghrib: #C03B68;
+  --isha: #2A6A9E;
+  --on-fajr: #FFFFFF;
+  --on-dhuhr: #1E1500;
+  --on-asr: #1F1004;
+  --on-maghrib: #FFFFFF;
+  --on-isha: #FFFFFF;
+  --warn: #B4281F;
+  --font-display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-arabic: 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', 'Traditional Arabic', serif;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1020;
+    --glow: #1A2556;
+    --surface: #141B33;
+    --fg: #E8ECF7;
+    --muted: #9BA4C0;
+    --line: #25304D;
+    --line-strong: #3A4768;
+    --fajr: #A28CF0;
+    --dhuhr: #E8BF45;
+    --asr: #F0A05B;
+    --maghrib: #EC7DA0;
+    --isha: #6FAEE6;
+    --on-fajr: #0B1020;
+    --on-dhuhr: #0B1020;
+    --on-asr: #0B1020;
+    --on-maghrib: #0B1020;
+    --on-isha: #0B1020;
+    --warn: #F08C84;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1020;
+  --glow: #1A2556;
+  --surface: #141B33;
+  --fg: #E8ECF7;
+  --muted: #9BA4C0;
+  --line: #25304D;
+  --line-strong: #3A4768;
+  --fajr: #A28CF0;
+  --dhuhr: #E8BF45;
+  --asr: #F0A05B;
+  --maghrib: #EC7DA0;
+  --isha: #6FAEE6;
+  --on-fajr: #0B1020;
+  --on-dhuhr: #0B1020;
+  --on-asr: #0B1020;
+  --on-maghrib: #0B1020;
+  --on-isha: #0B1020;
+  --warn: #F08C84;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, var(--glow) 0, transparent 440px);
+  background-repeat: no-repeat;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-block: 12px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page { max-width: 560px; margin-inline: auto; display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3, p, dl, dd, ul, figure, blockquote { margin: 0; padding: 0; }
+ul { list-style: none; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.2; text-wrap: balance; }
+
+/* Header */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mark { font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -.01em; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+button:disabled { opacity: .35; cursor: default; }
+.ghost {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--surface); font-weight: 600; font-size: 15px;
+}
+.ghost svg { flex: none; }
+.ghost.icon { width: 44px; padding: 0; justify-content: center; }
+.ghost.danger { background: var(--warn); border-color: var(--warn); color: var(--bg); }
+.nudge { position: relative; }
+.nudge::after { content: ''; position: absolute; top: 5px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--asr); border: 2px solid var(--surface); }
+
+.notice {
+  border: 1px solid var(--warn); border-radius: 12px; padding: 10px 14px; font-size: 14px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+.notice.ok { border-color: var(--line-strong); background: var(--surface); }
+.notice button.link { margin-top: 2px; padding: 0; min-height: 36px; }
+
+/* Reminder */
+.remind { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 4px; }
+.remind blockquote { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ar { font-family: var(--font-arabic); font-size: clamp(28px, 8.4vw, 36px); line-height: 1.75; max-width: 100%; }
+.ar.long { font-size: clamp(22px, 6.6vw, 28px); line-height: 1.9; }
+.en { font-size: 17px; line-height: 1.5; max-width: 34ch; text-wrap: balance; }
+.remind figcaption { font-size: 13px; color: var(--muted); }
+button.link {
+  border: 0; background: none; min-height: 44px; padding: 0 12px; color: var(--muted); font-size: 14px; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong);
+}
+.remind.swap blockquote, .remind.swap figcaption { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* Hero */
+.hero { display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 15px; color: var(--muted); }
+.big {
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(60px, 20vw, 96px);
+  line-height: .95; letter-spacing: -.025em; font-variant-numeric: tabular-nums; margin-bottom: 6px;
+}
+.sky { display: flex; gap: 4px; }
+.seg { flex: 1 1 0; min-width: 0; height: 16px; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--c) 30%, var(--surface)); }
+.seg span { display: block; height: 100%; width: 0; border-radius: 8px; background: var(--c); transition: width .4s ease; }
+.skynames { display: flex; gap: 4px; }
+.skynames span { flex: 1 1 0; min-width: 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 13px; color: var(--muted); }
+.facts dd { display: flex; flex-direction: column; margin-top: 2px; }
+.facts .v { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.facts small { font-size: 13px; color: var(--muted); line-height: 1.3; margin-top: 2px; }
+.note { font-size: 14px; color: var(--muted); }
+.note:empty { display: none; }
+
+/* Today */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sec-head .aside { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sub { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.rows { margin-top: 14px; border-bottom: 1px solid var(--line); }
+.row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center;
+  padding: 16px 0; border-top: 1px solid var(--line);
+}
+.rowmain { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rowtitle { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
+.rowtitle .rak { font-weight: 400; font-size: 13px; color: var(--muted); }
+.left { display: flex; align-items: baseline; gap: 8px; }
+.left .num { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.left .num.bump { animation: bump .32s cubic-bezier(.2, .8, .2, 1); }
+@keyframes bump { from { transform: translateY(6px); opacity: .35; } to { transform: none; opacity: 1; } }
+.left .unit { font-size: 14px; color: var(--muted); }
+.tline { display: flex; align-items: center; gap: 10px; min-height: 18px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; align-items: center; gap: 5px; }
+.dots i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--c); background: transparent; }
+.dots i.on { background: var(--c); }
+.dots b { font-weight: 600; color: var(--fg); font-size: 12px; margin-left: 2px; }
+.acts { display: flex; gap: 8px; align-items: center; }
+.acts button { min-height: 52px; border-radius: 14px; font-weight: 700; padding: 0 16px; }
+.acts .plus { background: var(--c); color: var(--on); border: 1px solid var(--c); min-width: 84px; font-size: 20px; }
+.acts .minus { background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); min-width: 52px; }
+.acts button:active:not(:disabled) { transform: scale(.96); }
+
+/* History */
+.plot { position: relative; height: 112px; margin-top: 14px; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; border-bottom: 1px solid var(--line-strong); }
+.slot { display: flex; align-items: flex-end; height: 100%; min-width: 0; }
+.bar-col { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; min-height: 2px; background: var(--line); }
+.bar-col span { display: block; width: 100%; background: var(--c); flex: none; }
+.goalline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); pointer-events: none; }
+.labels { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.labels span { font-size: 11px; text-align: center; color: var(--muted); overflow: hidden; }
+.labels span.today { color: var(--fg); font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 6px; }
+.foot { font-size: 13px; color: var(--muted); text-align: center; text-wrap: balance; }
+
+/* Settings sheet */
+.scrim { position: fixed; inset: 0; background: rgba(8, 12, 26, .55); z-index: 20; }
+.sheet {
+  position: fixed; z-index: 21; left: 0; right: 0; bottom: 0; max-height: 92vh; max-height: 92dvh; overflow-y: auto;
+  background: var(--surface); color: var(--fg); border-radius: 22px 22px 0 0; box-shadow: 0 -12px 40px rgba(8, 12, 26, .28);
+  padding: 20px max(20px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  animation: rise .28s cubic-bezier(.2, .8, .2, 1);
+}
+.sheet:focus { outline: none; }
+@keyframes rise { from { transform: translateY(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheethead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.help { font-size: 14px; color: var(--muted); max-width: 46ch; }
+.sheet > .help { margin-bottom: 14px; }
+form { display: flex; flex-direction: column; gap: 10px; }
+.frow, .fhead { display: grid; grid-template-columns: 90px repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; }
+.fhead span { font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+.fname { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 15px; min-width: 0; }
+.fname i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
+input[type=number], textarea {
+  width: 100%; min-width: 0; font: inherit; font-size: 16px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line-strong); border-radius: 10px;
+}
+input[type=number] { height: 46px; padding: 0 10px; font-variant-numeric: tabular-nums; }
+textarea { min-height: 96px; padding: 10px; resize: vertical; font-size: 14px; }
+input[type=file] { font: inherit; font-size: 14px; max-width: 100%; }
+.savebar { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.savebar .save { min-height: 48px; padding: 0 28px; border-radius: 14px; font-weight: 700; background: var(--fg); color: var(--bg); border: 1px solid var(--fg); }
+#formStatus, #backupStatus { font-size: 14px; color: var(--muted); }
+#backupStatus:empty { display: none; }
+
+/* Backup */
+.backup { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+.backup h3 { font-family: var(--font-display); font-weight: 700; font-size: 19px; }
+.brow { display: flex; flex-wrap: wrap; gap: 8px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.confirm { border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+
+@media (min-width: 640px) {
+  .sheet { inset: 0; margin: auto; height: max-content; max-height: 88vh; max-width: 520px; border-radius: 22px; padding: 24px; }
+}
+@media (max-width: 380px) {
+  .frow, .fhead { grid-template-columns: 82px repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .fname { font-size: 14px; gap: 6px; }
+  .facts .v { font-size: 19px; }
+  .left .num { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg span { transition: none; }
+  .acts button:active:not(:disabled) { transform: none; }
+  .sheet, .remind.swap blockquote, .remind.swap figcaption, .left .num.bump { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="bar">
+    <h1 class="mark">Qada</h1>
+    <button type="button" class="ghost" id="openSettings" aria-haspopup="dialog">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+      Settings
+    </button>
+  </header>
+
+  <p class="notice" id="banner" role="status" hidden></p>
+  <p class="notice ok" id="hint" hidden>
+    Add this page to your Home Screen, then open it from there. Numbers you enter in this browser tab won't carry over to the Home Screen app.
+    <br><button type="button" class="link" id="hintOk">Got it</button>
+  </p>
+  <p class="notice" id="toast" role="status" aria-live="polite" hidden></p>
+
+  <figure class="remind" id="remind">
+    <blockquote>
+      <p class="ar" id="qAr" lang="ar" dir="rtl"></p>
+      <p class="en" id="qEn"></p>
+    </blockquote>
+    <figcaption id="qSrc"></figcaption>
+    <button type="button" class="link" id="qNext">Another reminder</button>
+  </figure>
+
+  <section class="hero" aria-labelledby="h-left">
+    <p class="label" id="h-left">Prayers left to make up</p>
+    <p class="big" id="totalLeft">&mdash;</p>
+    <div class="sky" id="sky" role="img" aria-label="Progress for each prayer"></div>
+    <div class="skynames" id="skynames" aria-hidden="true"></div>
+    <dl class="facts">
+      <div><dt>Made up</dt><dd><span class="v" id="vDone">&mdash;</span><small id="sDone"></small></dd></div>
+      <div><dt>Pace</dt><dd><span class="v" id="vPace">&mdash;</span><small id="sPace"></small></dd></div>
+      <div><dt>Finish</dt><dd><span class="v" id="vFin">&mdash;</span><small id="sFin"></small></dd></div>
+    </dl>
+    <p class="note" id="heroNote"></p>
+  </section>
+
+  <section aria-labelledby="h-today">
+    <div class="sec-head"><h2 id="h-today">Today</h2><span class="aside" id="todayDate"></span></div>
+    <p class="sub" id="todaySub"></p>
+    <ul class="rows" id="rows"></ul>
+  </section>
+
+  <section aria-labelledby="h-hist">
+    <div class="sec-head"><h2 id="h-hist">Last 14 days</h2><span class="aside" id="streak"></span></div>
+    <div class="plot" id="plot"></div>
+    <div class="labels" id="labels"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <p class="foot">Verses and hadith are paraphrased from the sources shown. Check your preferred translation for the exact wording.</p>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" hidden>
+  <div class="sheethead">
+    <h2 id="sheetTitle">Settings</h2>
+    <button type="button" class="ghost icon" id="closeSettings" aria-label="Close settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <p class="help">These amounts are estimates, so change them whenever you refine one. Prayers left = owed &minus; made up before &minus; everything you log here, so your logged progress is kept.</p>
+  <form id="form" autocomplete="off">
+    <div class="fhead"><span></span><span>Owed</span><span>Made up before</span><span>Daily goal</span></div>
+    <div id="formRows" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="savebar"><button type="submit" class="save" id="saveBtn">Save</button><span id="formStatus" role="status"></span></div>
+  </form>
+
+  <section class="backup" aria-labelledby="h-backup">
+    <h3 id="h-backup">Backup</h3>
+    <p class="help" id="backupInfo"></p>
+    <div class="brow">
+      <button type="button" class="ghost" id="btnSave">Save backup file</button>
+      <button type="button" class="ghost" id="btnCopy">Copy backup text</button>
+      <button type="button" class="ghost" id="btnRestore">Restore&hellip;</button>
+    </div>
+    <textarea id="copyArea" readonly aria-label="Backup text" hidden></textarea>
+    <div class="stack" id="restorePanel" hidden>
+      <p class="help">Choose a backup file, or paste backup text. Nothing changes until you confirm.</p>
+      <input type="file" id="fileIn" accept="application/json,.json" aria-label="Backup file">
+      <textarea id="pasteArea" placeholder="Paste backup text here" aria-label="Paste backup text"></textarea>
+      <div class="brow"><button type="button" class="ghost" id="btnCheck">Check pasted text</button></div>
+    </div>
+    <div class="confirm" id="confirmBox" hidden>
+      <span id="confirmText"></span>
+      <div class="brow">
+        <button type="button" class="ghost danger" id="btnReplace">Replace everything</button>
+        <button type="button" class="ghost" id="btnCancel">Cancel</button>
+      </div>
+    </div>
+    <p id="backupStatus" role="status"></p>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var PR = [
+    { k: 'fajr', name: 'Fajr', rak: 2 },
+    { k: 'dhuhr', name: 'Dhuhr', rak: 4 },
+    { k: 'asr', name: 'Asr', rak: 4 },
+    { k: 'maghrib', name: 'Maghrib', rak: 3 },
+    { k: 'isha', name: 'Isha', rak: 4 }
+  ];
+  var GROUPS = ['owed', 'before', 'goal'];
+  var GLABEL = { owed: 'owed', before: 'made up before', goal: 'daily goal' };
+  var DEFAULT_GOAL = { fajr: 3, dhuhr: 2, asr: 2, maghrib: 2, isha: 2 };
+  var US = 'en-US';
+  var nf = new Intl.NumberFormat(US);
+  var fmt = function (n) { return nf.format(Math.round(n)); };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // Paraphrased wording, shown with the source. Arabic is the phrase the English renders.
+  var QUOTES = [
+    { ar: 'لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ', en: "Do not despair of Allah's mercy. Allah forgives all sins.", src: "Qur'an 39:53" },
+    { ar: 'أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ', en: 'The deeds most loved by Allah are the most consistent, even if small.', src: 'Hadith, Bukhari 6464 and Muslim 783' },
+    { ar: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', en: 'With every hardship comes ease.', src: "Qur'an 94:5–6" },
+    { ar: 'وَإِنْ أَتَانِي يَمْشِي أَتَيْتُهُ هَرْوَلَةً', en: 'If My servant comes to Me walking, I come to him running.', src: 'Hadith Qudsi, Bukhari 7405 and Muslim 2675' },
+    { ar: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا', en: 'Allah does not burden any soul beyond what it can bear.', src: "Qur'an 2:286" },
+    { ar: 'مَنْ نَسِيَ صَلَاةً أَوْ نَامَ عَنْهَا فَكَفَّارَتُهَا أَنْ يُصَلِّيَهَا إِذَا ذَكَرَهَا', en: 'Whoever forgets a prayer or sleeps through it, the way to make up for it is to pray it when they remember.', src: 'Hadith, Bukhari 597 and Muslim 684' },
+    { ar: 'إِنَّ الْحَسَنَاتِ يُذْهِبْنَ السَّيِّئَاتِ', en: 'Good deeds wipe out bad deeds.', src: "Qur'an 11:114" },
+    { ar: 'وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا', en: 'Follow a bad deed with a good deed and it will wipe it out.', src: 'Hadith, Tirmidhi 1987' },
+    { ar: 'إِنَّ اللَّهَ مَعَ الصَّابِرِينَ', en: 'Seek help through patience and prayer. Allah is with the patient.', src: "Qur'an 2:153" }
+  ];
+
+  /* ---------- state: everything lives in this phone's local storage ---------- */
+  var KEY = 'qada:v1';
+  var state = { v: 1, created: Date.now(), config: null, months: {}, lastBackup: 0 };
+  var storageOK = true, formDirty = false, setupPrompted = false, pendingRestore = null, persistAsked = false;
+  var prevLeft = {};
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function keyOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function monthOf(key) { return key.slice(0, 7); }
+  function dayOf(key) { return key.slice(8); }
+  function addDays(d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+  function parseKey(key) { return new Date(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10)); }
+  function diffDays(aKey, bKey) { return Math.round((parseKey(aKey) - parseKey(bKey)) / 864e5); }
+  function num(v) { v = Number(v); return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0; }
+
+  function normConfig(d) {
+    var o = {};
+    GROUPS.forEach(function (g) { o[g] = {}; PR.forEach(function (p) { o[g][p.k] = num(d && d[g] && d[g][p.k]); }); });
+    return o;
+  }
+  // months: { 'YYYY-MM': { 'DD': { fajr, dhuhr, asr, maghrib, isha } } }
+  function cleanMonths(src) {
+    var out = {};
+    if (!src || typeof src !== 'object') return out;
+    Object.keys(src).forEach(function (mid) {
+      if (!/^\d{4}-\d{2}$/.test(mid) || !src[mid] || typeof src[mid] !== 'object') return;
+      var days = {};
+      Object.keys(src[mid]).forEach(function (dd) {
+        var c = src[mid][dd];
+        if (!/^\d{2}$/.test(dd) || !c || typeof c !== 'object') return;
+        var o = {}, any = false;
+        PR.forEach(function (p) { o[p.k] = num(c[p.k]); if (o[p.k] > 0) any = true; });
+        if (any) days[dd] = o;
+      });
+      out[mid] = days;
+    });
+    return out;
+  }
+  function probeStorage() {
+    try { localStorage.setItem('qada:probe', '1'); localStorage.removeItem('qada:probe'); return true; } catch (e) { return false; }
+  }
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      state.config = o.config ? normConfig(o.config) : null;
+      state.months = cleanMonths(o.months);
+      state.lastBackup = Number(o.lastBackup) || 0;
+      state.created = Number(o.created) || state.created;
+    } catch (e) { /* start empty */ }
+  }
+  function saveState() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; return true; } catch (e) { storageOK = false; return false; }
+  }
+  function persistOnce() {
+    if (persistAsked) return;
+    persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* optional */ }
+  }
+
+  function monthDays(id) { return state.months[id] || {}; }
+  function dayVal(key, k) {
+    var c = monthDays(monthOf(key))[dayOf(key)];
+    return c && Number.isFinite(c[k]) ? c[k] : 0;
+  }
+  function dayTotal(key) { var t = 0; PR.forEach(function (p) { t += dayVal(key, p.k); }); return t; }
+  function sumLogged(months) {
+    var t = {};
+    PR.forEach(function (p) { t[p.k] = 0; });
+    Object.keys(months).forEach(function (id) {
+      var days = months[id];
+      Object.keys(days).forEach(function (d) { PR.forEach(function (p) { t[p.k] += num(days[d] && days[d][p.k]); }); });
+    });
+    return t;
+  }
+  function loggedTotals() { return sumLogged(state.months); }
+  function firstLogKey() {
+    var min = null;
+    Object.keys(state.months).forEach(function (id) {
+      var days = state.months[id];
+      Object.keys(days).forEach(function (d) {
+        var c = days[d];
+        if (c && PR.some(function (p) { return c[p.k] > 0; })) {
+          var key = id + '-' + d;
+          if (min === null || key < min) min = key;
+        }
+      });
+    });
+    return min;
+  }
+  function pct(x) { return (x < 10 && x > 0 ? x.toFixed(1) : Math.round(x)) + '%'; }
+
+  /* ---------- notices ---------- */
+  var toastTimer = null;
+  function toast(msg, ok) {
+    var el = $('toast');
+    el.textContent = msg; el.hidden = false;
+    el.className = 'notice' + (ok ? ' ok' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 4500);
+  }
+  function status(msg) { $('formStatus').textContent = msg; }
+  function backupStatus(msg) { $('backupStatus').textContent = msg; }
+
+  /* ---------- static DOM ---------- */
+  var rowEls = {}, segEls = {}, nameEls = {}, barEls = [], labelEls = [];
+  (function build() {
+    var rows = $('rows'), formRows = $('formRows'), legend = $('legend'), sky = $('sky'), names = $('skynames');
+    PR.forEach(function (p) {
+      var li = document.createElement('li');
+      li.className = 'row';
+      li.style.setProperty('--c', 'var(--' + p.k + ')');
+      li.style.setProperty('--on', 'var(--on-' + p.k + ')');
+      li.innerHTML =
+        '<div class="rowmain">' +
+          '<div class="rowtitle"><span>' + p.name + '</span><span class="rak">' + p.rak + ' rakats</span></div>' +
+          '<div class="left"><span class="num">&mdash;</span><span class="unit">left</span></div>' +
+          '<div class="tline"><span class="dots" role="img"></span><span class="meta"></span></div>' +
+        '</div>' +
+        '<div class="acts">' +
+          '<button type="button" class="minus" data-k="' + p.k + '" data-d="-1" aria-label="Undo one ' + p.name + '">&minus;1</button>' +
+          '<button type="button" class="plus" data-k="' + p.k + '" data-d="1" aria-label="Log one ' + p.name + ' made up">+1</button>' +
+        '</div>';
+      rows.appendChild(li);
+      rowEls[p.k] = {
+        num: li.querySelector('.num'), unit: li.querySelector('.unit'), dots: li.querySelector('.dots'),
+        meta: li.querySelector('.meta'), minus: li.querySelector('.minus'), plus: li.querySelector('.plus')
+      };
+
+      var seg = document.createElement('div');
+      seg.className = 'seg';
+      seg.style.setProperty('--c', 'var(--' + p.k + ')');
+      seg.innerHTML = '<span></span>';
+      sky.appendChild(seg);
+      segEls[p.k] = seg;
+      var nm = document.createElement('span');
+      nm.textContent = p.name;
+      names.appendChild(nm);
+      nameEls[p.k] = nm;
+
+      var fr = document.createElement('div');
+      fr.className = 'frow';
+      fr.style.setProperty('--c', 'var(--' + p.k + ')');
+      fr.innerHTML = '<span class="fname"><i></i>' + p.name + '</span>' + GROUPS.map(function (g) {
+        return '<input type="number" inputmode="numeric" min="0" step="1" id="f-' + g + '-' + p.k + '" aria-label="' + p.name + ' ' + GLABEL[g] + '">';
+      }).join('');
+      formRows.appendChild(fr);
+
+      var lg = document.createElement('span');
+      lg.innerHTML = '<i style="--c: var(--' + p.k + ')"></i>' + p.name;
+      legend.appendChild(lg);
+    });
+
+    var plot = $('plot'), labels = $('labels');
+    for (var i = 0; i < 14; i++) {
+      var slot = document.createElement('div');
+      slot.className = 'slot';
+      var bar = document.createElement('div');
+      bar.className = 'bar-col';
+      PR.forEach(function (p) {
+        var s = document.createElement('span');
+        s.style.setProperty('--c', 'var(--' + p.k + ')');
+        bar.appendChild(s);
+      });
+      slot.appendChild(bar);
+      plot.appendChild(slot);
+      barEls.push(bar);
+      var lab = document.createElement('span');
+      labels.appendChild(lab);
+      labelEls.push(lab);
+    }
+    var gl = document.createElement('div');
+    gl.className = 'goalline';
+    gl.id = 'goalline';
+    gl.hidden = true;
+    plot.appendChild(gl);
+  })();
+
+  /* ---------- reminder ---------- */
+  var qShift = 0, qDayKey = '';
+  function dayIndex() {
+    var n = new Date();
+    return Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 864e5);
+  }
+  function renderQuote(animate) {
+    qDayKey = keyOf(new Date());
+    var q = QUOTES[(dayIndex() + qShift) % QUOTES.length];
+    var ar = $('qAr');
+    ar.textContent = q.ar;
+    ar.classList.toggle('long', q.ar.length > 36);
+    $('qEn').textContent = q.en;
+    $('qSrc').textContent = q.src;
+    if (animate) {
+      var r = $('remind');
+      r.classList.remove('swap'); void r.offsetWidth; r.classList.add('swap');
+    }
+  }
+  $('qNext').addEventListener('click', function () { qShift++; renderQuote(true); });
+
+  /* ---------- projection ---------- */
+  function finishDays(left, rates) {
+    var max = 0;
+    for (var i = 0; i < PR.length; i++) {
+      var k = PR[i].k;
+      if (left[k] > 0) {
+        if (!(rates[k] > 0)) return null;
+        max = Math.max(max, left[k] / rates[k]);
+      }
+    }
+    return max;
+  }
+  function fmtSpan(days) {
+    var y = days / 365.25;
+    if (y >= 1) return y.toFixed(1) + ' years away';
+    var m = days / 30.44;
+    if (m >= 1) return Math.round(m) + ' months away';
+    return Math.max(1, Math.ceil(days)) + ' days away';
+  }
+  function setDots(el, done, target, name) {
+    el.textContent = '';
+    if (target > 12) {
+      el.textContent = done + ' of ' + target + ' today';
+    } else {
+      for (var i = 0; i < target; i++) {
+        var d = document.createElement('i');
+        if (i < done) d.className = 'on';
+        el.appendChild(d);
+      }
+      if (done > target) { var b = document.createElement('b'); b.textContent = '+' + (done - target); el.appendChild(b); }
+    }
+    el.setAttribute('aria-label', name + ' today: ' + done + (target ? ' of ' + target : ''));
+  }
+  function needsBackup() {
+    if (!state.config) return false;
+    var t = sumLogged(state.months), any = false;
+    PR.forEach(function (p) { if (t[p.k] > 0) any = true; });
+    if (!any) return false;
+    var ref = state.lastBackup || state.created || Date.now();
+    return Date.now() - ref > 30 * 864e5;
+  }
+  function updateBackupInfo() {
+    var when = state.lastBackup
+      ? 'Last backup: ' + new Intl.DateTimeFormat(US, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(state.lastBackup)) + '.'
+      : 'No backup yet.';
+    $('backupInfo').textContent = 'Your numbers live only on this phone. Save a backup now and then, and before you clear browser data or change phones. ' + when;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var now = new Date();
+    var todayKey = keyOf(now);
+    var cfg = state.config;
+    var ph = cfg ? 'ready' : 'setup';
+
+    if (qDayKey && qDayKey !== todayKey) { qShift = 0; renderQuote(false); }
+
+    var banner = $('banner');
+    banner.hidden = storageOK;
+    if (!storageOK) banner.textContent = 'This browser is blocking storage, so nothing you log will be kept. Turn off private browsing, or add the app to your Home Screen.';
+
+    var nudge = needsBackup();
+    var sb = $('openSettings');
+    sb.classList.toggle('nudge', nudge);
+    sb.setAttribute('aria-label', nudge ? 'Settings. It has been a while since your last backup.' : 'Settings');
+    updateBackupInfo();
+
+    var logged = cfg ? loggedTotals() : null;
+    var left = {}, owed = {}, totalLeft = 0, totalOwed = 0;
+    PR.forEach(function (p) {
+      var o = cfg ? cfg.owed[p.k] : 0, b = cfg ? cfg.before[p.k] : 0;
+      owed[p.k] = o;
+      left[p.k] = cfg ? Math.max(0, o - b - logged[p.k]) : 0;
+      totalLeft += left[p.k]; totalOwed += o;
+    });
+
+    // sky band
+    PR.forEach(function (p) {
+      var w = cfg && owed[p.k] > 0 ? owed[p.k] : 1;
+      segEls[p.k].style.flex = w + ' 1 0';
+      nameEls[p.k].style.flex = w + ' 1 0';
+      segEls[p.k].firstChild.style.width = cfg && owed[p.k] > 0 ? ((owed[p.k] - left[p.k]) / owed[p.k] * 100) + '%' : '0%';
+    });
+    $('totalLeft').textContent = cfg ? fmt(totalLeft) : '—';
+
+    // facts
+    var vDone = '—', sDone = '', vPace = '—', sPace = '', vFin = '—', sFin = '', note = '';
+    if (ph === 'ready') {
+      var madeUp = totalOwed - totalLeft;
+      vDone = totalOwed > 0 ? pct(madeUp / totalOwed * 100) : '0%';
+      sDone = fmt(madeUp) + ' of ' + fmt(totalOwed);
+      if (totalLeft === 0) {
+        vPace = 'Done'; vFin = 'Done';
+        note = 'Every prayer made up. Alhamdulillah.';
+      } else {
+        var first = firstLogKey();
+        var span = first ? Math.min(14, diffDays(todayKey, first) + 1) : 0;
+        var rates = {}, totalRate = 0;
+        PR.forEach(function (p) {
+          var s = 0;
+          for (var i = 0; i < span; i++) s += dayVal(keyOf(addDays(now, -i)), p.k);
+          rates[p.k] = span > 0 ? s / span : 0;
+          totalRate += rates[p.k];
+        });
+        var fd = null, usedGoal = false;
+        if (span >= 3) fd = finishDays(left, rates);
+        if (fd === null) {
+          var gr = {};
+          PR.forEach(function (p) { gr[p.k] = cfg.goal[p.k]; });
+          fd = finishDays(left, gr);
+          usedGoal = fd !== null;
+        }
+        if (span >= 3) {
+          vPace = totalRate.toFixed(1).replace(/\.0$/, '') + ' a day';
+          sPace = 'last ' + span + ' days';
+        } else {
+          vPace = 'No pace yet'; sPace = 'log a few days';
+        }
+        if (fd !== null) {
+          vFin = new Intl.DateTimeFormat(US, { month: 'short', year: 'numeric' }).format(addDays(now, Math.ceil(fd)));
+          sFin = fmtSpan(fd);
+          if (usedGoal) note = "Finish is based on your daily goal until you've logged three days.";
+        } else {
+          sFin = 'set a daily goal';
+        }
+      }
+    } else {
+      note = 'Open Settings and enter what you owe to start.';
+    }
+    $('vDone').textContent = vDone; $('sDone').textContent = sDone;
+    $('vPace').textContent = vPace; $('sPace').textContent = sPace;
+    $('vFin').textContent = vFin; $('sFin').textContent = sFin;
+    $('heroNote').textContent = note;
+
+    // today
+    $('todayDate').textContent = new Intl.DateTimeFormat(US, { weekday: 'short', month: 'short', day: 'numeric' }).format(now);
+    var sumDone = 0, sumTarget = 0, rakToGo = 0;
+    PR.forEach(function (p) {
+      var done = cfg ? dayVal(todayKey, p.k) : 0;
+      var goal = cfg ? cfg.goal[p.k] : 0;
+      var target = cfg ? Math.min(goal, done + left[p.k]) : 0;
+      sumDone += Math.min(done, target); sumTarget += target;
+      rakToGo += Math.max(target - done, 0) * p.rak;
+      var rowE = rowEls[p.k];
+      rowE.num.textContent = cfg ? fmt(left[p.k]) : '—';
+      if (cfg && prevLeft[p.k] !== undefined && left[p.k] < prevLeft[p.k]) {
+        rowE.num.classList.remove('bump'); void rowE.num.offsetWidth; rowE.num.classList.add('bump');
+      }
+      prevLeft[p.k] = cfg ? left[p.k] : undefined;
+      rowE.unit.textContent = cfg && left[p.k] === 0 ? 'all made up' : 'left';
+      rowE.meta.textContent = cfg ? fmt(owed[p.k] - left[p.k]) + ' of ' + fmt(owed[p.k]) + ' made up' : '';
+      setDots(rowE.dots, done, target, p.name);
+      rowE.plus.disabled = !cfg || left[p.k] <= 0;
+      rowE.minus.disabled = !cfg || done <= 0;
+    });
+    var todaySub = '';
+    if (cfg) {
+      if (sumTarget === 0) todaySub = totalLeft === 0 ? '' : 'Set a daily goal in Settings.';
+      else if (rakToGo === 0) todaySub = 'Daily goal met: ' + sumDone + ' of ' + sumTarget + ' prayers.';
+      else todaySub = sumDone + ' of ' + sumTarget + ' prayers done, ' + rakToGo + ' rakats to go.';
+    }
+    $('todaySub').textContent = todaySub;
+    $('todaySub').hidden = !todaySub;
+
+    // history
+    var goalTotal = 0;
+    if (cfg) PR.forEach(function (p) { goalTotal += cfg.goal[p.k]; });
+    var totals = [], maxT = Math.max(goalTotal, 1), i;
+    for (i = 0; i < 14; i++) {
+      var dk = keyOf(addDays(now, i - 13));
+      var t = cfg ? dayTotal(dk) : 0;
+      totals.push(t); if (t > maxT) maxT = t;
+    }
+    for (i = 0; i < 14; i++) {
+      var day = addDays(now, i - 13), key = keyOf(day), bar = barEls[i], tt = totals[i];
+      bar.style.height = tt > 0 ? (tt / maxT * 100) + '%' : '2px';
+      var detail = [];
+      PR.forEach(function (p, j) {
+        var v = cfg ? dayVal(key, p.k) : 0;
+        var seg = bar.children[j];
+        seg.style.height = tt > 0 ? (v / tt * 100) + '%' : '0';
+        if (v > 0) detail.push(p.name + ' ' + v);
+      });
+      bar.parentNode.title = new Intl.DateTimeFormat(US, { weekday: 'short', month: 'short', day: 'numeric' }).format(day) + ': ' + (tt ? tt + ' (' + detail.join(', ') + ')' : 'none');
+      labelEls[i].textContent = new Intl.DateTimeFormat(US, { weekday: 'short' }).format(day).slice(0, 2);
+      labelEls[i].classList.toggle('today', i === 13);
+    }
+    var gl = $('goalline');
+    gl.hidden = !(goalTotal > 0);
+    gl.style.bottom = (goalTotal / maxT * 100) + '%';
+
+    // streak: consecutive days at or over the daily goal; today only counts once it is met
+    var streakText = '';
+    if (cfg && goalTotal > 0) {
+      var first2 = firstLogKey();
+      var todayMet = sumTarget > 0 && sumDone >= sumTarget;
+      var n = todayMet ? 1 : 0, cursor = -1;
+      while (first2 && n < 4000) {
+        var ck = keyOf(addDays(now, cursor));
+        if (ck < first2 || dayTotal(ck) < goalTotal) break;
+        n++; cursor--;
+      }
+      streakText = n > 0 ? n + (n === 1 ? ' day' : ' days') + ' in a row at goal' : 'No goal streak yet';
+    }
+    $('streak').textContent = streakText;
+
+    if (ph === 'setup' && !setupPrompted) { setupPrompted = true; openSheet(); }
+  }
+
+  /* ---------- logging ---------- */
+  function mutate(k, delta) {
+    if (!state.config) return;
+    var p = PR.filter(function (x) { return x.k === k; })[0];
+    var todayKey = keyOf(new Date()), mid = monthOf(todayKey), dd = dayOf(todayKey);
+    if (delta > 0) {
+      var lg = loggedTotals();
+      if (state.config.owed[k] - state.config.before[k] - lg[k] <= 0) {
+        toast(p.name + ' is already at zero. Raise the amount owed in Settings if you owe more.');
+        return;
+      }
+    }
+    var month = state.months[mid] || (state.months[mid] = {});
+    var cur = month[dd] || (month[dd] = {});
+    PR.forEach(function (x) { if (!Number.isFinite(cur[x.k])) cur[x.k] = 0; });
+    var next = Math.max(0, cur[k] + delta);
+    if (next === cur[k]) return;
+    cur[k] = next;
+    if (!saveState()) toast("Couldn't save that. This browser is blocking storage.");
+    persistOnce();
+    render();
+  }
+  $('rows').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-k]') : null;
+    if (!b || b.disabled) return;
+    mutate(b.getAttribute('data-k'), +b.getAttribute('data-d'));
+  });
+
+  /* ---------- settings sheet ---------- */
+  var sheet = $('sheet'), scrim = $('scrim'), opener = null;
+  function openSheet() {
+    if (!sheet.hidden) return;
+    opener = document.activeElement;
+    populateForm(false);
+    status(''); backupStatus('');
+    scrim.hidden = false; sheet.hidden = false;
+    document.body.style.overflow = 'hidden';
+    sheet.scrollTop = 0;
+    sheet.focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    if (sheet.hidden) return;
+    sheet.hidden = true; scrim.hidden = true;
+    document.body.style.overflow = '';
+    clearRestore();
+    if (opener && opener.focus && document.contains(opener)) opener.focus({ preventScroll: true });
+  }
+  $('openSettings').addEventListener('click', openSheet);
+  $('closeSettings').addEventListener('click', closeSheet);
+  scrim.addEventListener('click', closeSheet);
+  document.addEventListener('keydown', function (e) {
+    if (sheet.hidden) return;
+    if (e.key === 'Escape') { closeSheet(); return; }
+    if (e.key !== 'Tab') return;
+    var f = Array.prototype.filter.call(sheet.querySelectorAll('button, input, textarea'), function (el) { return !el.disabled && !el.hidden && el.offsetParent !== null; });
+    if (!f.length) return;
+    var firstEl = f[0], lastEl = f[f.length - 1];
+    if (e.shiftKey && (document.activeElement === firstEl || document.activeElement === sheet)) { e.preventDefault(); lastEl.focus(); }
+    else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+  });
+
+  function populateForm(force) {
+    if (formDirty && !force) return;
+    PR.forEach(function (p) {
+      GROUPS.forEach(function (g) {
+        var v = '';
+        if (state.config) v = String(state.config[g][p.k]);
+        else if (g === 'before') v = '0';
+        else if (g === 'goal') v = String(DEFAULT_GOAL[p.k]);
+        $('f-' + g + '-' + p.k).value = v;
+      });
+    });
+    formDirty = false;
+  }
+  $('form').addEventListener('input', function () { formDirty = true; status(''); });
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var next = { owed: {}, before: {}, goal: {} }, any = false;
+    PR.forEach(function (p) {
+      GROUPS.forEach(function (g) {
+        var v = num($('f-' + g + '-' + p.k).value);
+        next[g][p.k] = v;
+        if (g === 'owed' && v > 0) any = true;
+      });
+    });
+    if (!any) { status('Enter at least one amount you owe.'); return; }
+    state.config = next;
+    var ok = saveState();
+    persistOnce();
+    formDirty = false; status('');
+    closeSheet();
+    render();
+    if (ok) toast('Saved.', true); else toast("Couldn't save. This browser is blocking storage.");
+  });
+
+  /* ---------- backup and restore ---------- */
+  function makeBackup() {
+    return { app: 'qada-tracker', version: 1, exportedAt: new Date().toISOString(), config: state.config, months: state.months };
+  }
+  function markBackup() {
+    state.lastBackup = Date.now();
+    saveState();
+    render();
+  }
+  $('btnSave').addEventListener('click', function () {
+    backupStatus('');
+    var json = JSON.stringify(makeBackup(), null, 1);
+    var name = 'qada-backup-' + keyOf(new Date()) + '.json';
+    var shared = null;
+    try {
+      var file = new File([json], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) shared = navigator.share({ files: [file], title: 'Qada backup' });
+    } catch (e) { shared = null; }
+    if (shared) {
+      shared.then(function () { markBackup(); backupStatus('Backup saved.'); })
+        .catch(function (err) { if (!err || err.name !== 'AbortError') downloadFile(json, name); });
+    } else {
+      downloadFile(json, name);
+    }
+  });
+  function downloadFile(json, name) {
+    try {
+      var url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      markBackup(); backupStatus('Backup file downloaded.');
+    } catch (e) {
+      backupStatus('Could not create a file here. Use Copy backup text instead.');
+    }
+  }
+  $('btnCopy').addEventListener('click', function () {
+    var text = JSON.stringify(makeBackup());
+    function showText() {
+      var t = $('copyArea');
+      t.hidden = false; t.value = text; t.focus(); t.select();
+      backupStatus("Couldn't copy automatically. The text is selected above: copy it by hand and keep it somewhere safe.");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        markBackup(); backupStatus('Copied. Paste it into a note to yourself or an email.');
+      }).catch(showText);
+    } else { showText(); }
+  });
+  $('btnRestore').addEventListener('click', function () {
+    var p = $('restorePanel');
+    p.hidden = !p.hidden;
+    backupStatus('');
+  });
+  function stageRestore(text) {
+    var o;
+    try { o = JSON.parse(text); } catch (e) { o = null; }
+    if (!o || o.app !== 'qada-tracker' || typeof o.months !== 'object') {
+      backupStatus("That isn't a Qada backup. Choose the .json file you saved, or paste its full text.");
+      return;
+    }
+    pendingRestore = { config: o.config ? normConfig(o.config) : null, months: cleanMonths(o.months), exportedAt: o.exportedAt || '' };
+    var t = sumLogged(pendingRestore.months), total = 0;
+    PR.forEach(function (p) { total += t[p.k]; });
+    var when = pendingRestore.exportedAt ? ' saved ' + new Intl.DateTimeFormat(US, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(pendingRestore.exportedAt)) : '';
+    $('confirmText').textContent = 'Backup found' + when + ' with ' + fmt(total) + ' prayers logged. Restoring replaces everything on this phone.';
+    $('confirmBox').hidden = false;
+    backupStatus('');
+  }
+  function clearRestore() {
+    pendingRestore = null;
+    $('confirmBox').hidden = true;
+    $('restorePanel').hidden = true;
+    $('pasteArea').value = '';
+    $('fileIn').value = '';
+    $('copyArea').hidden = true;
+  }
+  $('fileIn').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { stageRestore(String(r.result)); };
+    r.onerror = function () { backupStatus("Couldn't read that file."); };
+    r.readAsText(f);
+  });
+  $('btnCheck').addEventListener('click', function () { stageRestore($('pasteArea').value); });
+  $('btnCancel').addEventListener('click', function () { clearRestore(); backupStatus(''); });
+  $('btnReplace').addEventListener('click', function () {
+    if (!pendingRestore) return;
+    state.config = pendingRestore.config;
+    state.months = pendingRestore.months;
+    state.lastBackup = Date.now();
+    var ok = saveState();
+    persistOnce();
+    clearRestore();
+    populateForm(true);
+    closeSheet();
+    render();
+    if (ok) toast('Restored.', true); else toast("Restored, but this browser is blocking storage, so it won't be kept.");
+  });
+
+  /* ---------- install hint ---------- */
+  function isStandalone() {
+    return window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+  (function hint() {
+    var touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    var dismissed = false;
+    try { dismissed = localStorage.getItem('qada:hint') === '1'; } catch (e) { /* show it */ }
+    if (touch && !isStandalone() && !dismissed) $('hint').hidden = false;
+    $('hintOk').addEventListener('click', function () {
+      $('hint').hidden = true;
+      try { localStorage.setItem('qada:hint', '1'); } catch (e) { /* ignore */ }
+    });
+  })();
+
+  /* ---------- boot ---------- */
+  storageOK = probeStorage();
+  if (storageOK) loadState();
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY) return;
+    loadState(); populateForm(false); render();
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) render(); });
+  setInterval(render, 60000);
+  renderQuote(false);
+  render();
+
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function () {
+        return navigator.serviceWorker.ready;
+      }).then(function (reg) {
+        if (reg && reg.active) reg.active.postMessage('precache-fonts');
+      }).catch(function () { /* works online without it */ });
+    });
+  }
+})();
+</script>
+</body>
+</html>
